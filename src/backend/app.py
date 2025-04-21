@@ -16,6 +16,7 @@ from pydantic import BaseModel
 from inference import Click, ClickHandler, PointCloudInference
 from visual_obj_recognition import mask_obj_recognition
 
+
 # Create static directory if it doesn't exist
 static_dir = os.path.join(os.getcwd(), "static")
 os.makedirs(static_dir, exist_ok=True)
@@ -29,7 +30,7 @@ app.mount("/static", StaticFiles(directory=static_dir), name="static")
 app.add_middleware(
     CORSMiddleware,
     # List specific origins instead of using wildcard "*"
-    allow_origins=["http://localhost:3001", "http://127.0.0.1:3001"],
+    allow_origins=["https://localhost:3001", "https://127.0.0.1:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +53,14 @@ class MaskObjDetectionRequest(BaseModel):
     # "mask" is a list of integers where 0 is background, 1 is first object, 2 is second object, etc.
     mask: list
 
+# script_dir = os.path.dirname(os.path.abspath(__file__))
+# project_root = os.path.abspath(os.path.join(script_dir, '../'))
+# pretraining_weights = os.path.join(
+#     project_root,
+#     'agile3d',
+#     'weights',
+#     'checkpoint1099.pth'
+# )
 
 @app.post("/api/upload")
 async def upload_point_cloud(file: UploadFile = File(...)):
@@ -95,7 +104,7 @@ async def upload_point_cloud(file: UploadFile = File(...)):
 
         # Initialize the inference object
         current_inference = PointCloudInference(
-            pretraining_weights='agile3d/weights/checkpoint1099.pth',
+            pretraining_weights='./agile3d/weights/checkpoint1099.pth',
             voxel_size=0.05
         )
         current_inference.load_point_cloud(file_path)
@@ -311,6 +320,7 @@ async def download_results():
 if __name__ == "__main__":
     import uvicorn
 
+    # print("当前工作目录:", os.getcwd())
     # Ensure output directory exists
     os.makedirs("./outputs", exist_ok=True)
     uvicorn.run(app, host="0.0.0.0", port=9500)

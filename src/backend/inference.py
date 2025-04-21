@@ -17,8 +17,8 @@ import numpy as np
 import open3d as o3d
 import torch
 
-from interactive_tool.utils import get_obj_color
-from models import build_model
+from agile3d.interactive_tool.utils import get_obj_color
+from agile3d.models import build_model
 
 
 @dataclass

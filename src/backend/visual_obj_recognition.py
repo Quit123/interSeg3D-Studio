@@ -87,6 +87,7 @@ def mask_obj_recognition(point_cloud_path: str | Path, mask: np.ndarray | str, o
         camera_height=1.5,
         mask_mode=mask_mode,
         obj_id=obj_id,
+        look_outward=False,
     )
 
     # Load the rendered images.

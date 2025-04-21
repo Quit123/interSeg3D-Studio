@@ -13,6 +13,9 @@ import numpy as np
 import open3d as o3d
 from open3d.visualization import rendering
 
+from scipy.spatial import KDTree
+from sklearn.decomposition import PCA
+from scipy.stats import multivariate_normal
 
 def load_geometry_from_file(
         file_path: str | Path,
@@ -154,6 +157,9 @@ def render_object_views(
         view_angle: float = 60.0,
         mask_mode: str = "outline",  # "outline" or "full"
         debug: bool = True,
+
+        look_outward: bool = False,  # 新增参数
+        scene_center: List[float] = None,
 ) -> List[str]:
     """
     Renders views of an object based on a mask and a set of camera positions.
@@ -215,7 +221,15 @@ def render_object_views(
     # Iterate over each camera position, render the scene, and save the output image.
     for idx, eye in enumerate(camera_pos):
         eye = np.array(eye)
-        renderer.scene.camera.look_at(object_center, eye, np.array([0, 0, 1]))
+        if look_outward:
+            target = 2 * eye - scene_center
+
+            up = np.array([0, 0, 1])
+
+            renderer.scene.camera.look_at(target, eye, up)
+        else:
+            renderer.scene.camera.look_at(object_center, eye, np.array([0, 0, 1]))
+        # renderer.scene.camera.look_at(object_center, eye, np.array([0, 0, 1]))
         aspect = width / height
         renderer.scene.camera.set_projection(
             view_angle, aspect, near_plane, far_plane, rendering.Camera.FovType.Vertical
@@ -327,7 +341,10 @@ def test_camera_positions(
         camera_height: Optional[float] = None,
         mask_mode: str = "outline",
         highlight_color: List[float] = [1.0, 0.0, 0.0],
-        obj_id: int = 1
+        obj_id: int = 1,
+
+        look_outward: bool = False,
+        overlap_ratio: float = 0.2,
 ) -> List[str]:
     """
     Tests camera positions by generating multiple views of the scene, adding camera markers,
@@ -373,7 +390,31 @@ def test_camera_positions(
     vis_colors, outline = process_mask_mode(obj_mask, coords, colors.copy(), mask_mode, highlight_color)
     # Create the visualization geometry using the updated colors.
     vis_geometry = create_vis_geometry(geometry_type, coords, vis_colors, geometry)
-    center, bounding_radius = compute_object_center_and_radius(obj_mask, coords)
+
+    # center, bounding_radius = compute_object_center_and_radius(obj_mask, coords)
+    # ******************************************************************************
+    if look_outward:
+        # The central of whole point cloud and surrounding radius
+        center = compute_cloud_center(coords)
+        # center, target = compute_camera_position(coords)
+        bounding_radius = 0.5
+
+        view_angle = 90.0
+        distance_factor = 0.1
+        aspect_ratio = 1280 / 720 # render_object_views image_size
+        vertical_fov_rad = np.radians(view_angle)
+        horizontal_fov_rad = 2 * np.arctan(np.tan(vertical_fov_rad / 2) * aspect_ratio)
+        horizontal_fov = np.degrees(horizontal_fov_rad)
+
+        effective_fov = horizontal_fov * (1 - overlap_ratio)
+        num_positions = int(np.ceil(360 / effective_fov))
+        print(f"horizontal_fov: {horizontal_fov:.2f}°")
+        print(f"effective_fov: {effective_fov:.2f}°")
+        print("num_positions", num_positions)
+        print(f"bounding_radius: {bounding_radius}")
+    else:
+        center, bounding_radius = compute_object_center_and_radius(obj_mask, coords)
+    # ******************************************************************************
 
     # Compute camera height if not provided.
     if camera_height is None:
@@ -387,6 +428,9 @@ def test_camera_positions(
         x = center[0] + radius * np.cos(angle)
         y = center[1] + radius * np.sin(angle)
         camera_positions.append([x, y, camera_height])
+
+    # outlook
+    scene_center = [center[0], center[1], camera_height]
 
     # Create camera markers.
     camera_cloud = create_camera_markers(camera_positions, bounding_radius)
@@ -434,14 +478,134 @@ def test_camera_positions(
         view_angle=view_angle,
         mask_mode=mask_mode,
         debug=True,
+        look_outward=look_outward,
+        scene_center=scene_center,
     )
+
+# *********************************************************************
+
+# def compute_cloud_center(coords: np.ndarray, k_neighbors: int = 50, std_ratio: float = 2.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+#     """预处理点云并计算PCA主方向"""
+#     if len(coords) == 0:
+#         return np.array(0.0), np.array(0.0), np.array(0.0)
+#
+#     # 去除离群点（同之前方法）
+#     tree = KDTree(coords)
+#     distances, _ = tree.query(coords, k=k_neighbors + 1)
+#     avg_distances = np.mean(distances[:, 1:], axis=1)
+#     mean_dist = np.mean(avg_distances)
+#     std_dist = np.std(avg_distances)
+#     threshold = mean_dist + std_ratio * std_dist
+#     filtered_coords = coords[avg_distances < threshold]
+#     if len(filtered_coords) == 0:
+#         filtered_coords = coords
+#
+#     # 计算PCA主方向
+#     pca = PCA(n_components=3)
+#     pca.fit(filtered_coords)
+#     return pca.mean_, pca.components_, filtered_coords
+#
+#
+# def voxelize_along_pca(coords: np.ndarray, pca_mean: np.ndarray, pca_axes: np.ndarray,
+#                        voxel_size: float = 1.0) -> Tuple[np.ndarray, np.ndarray]:
+#     """沿PCA主方向体素化点云，返回每个体素的中心坐标和点数"""
+#     # 将点云转换到PCA坐标系
+#     centered_coords = coords - pca_mean
+#     projected_coords = np.dot(centered_coords, pca_axes.T)
+#
+#     # 计算体素网格范围
+#     min_bounds = np.min(projected_coords, axis=0)
+#     max_bounds = np.max(projected_coords, axis=0)
+#     num_voxels = np.ceil((max_bounds - min_bounds) / voxel_size).astype(int)
+#
+#     # 体素化并统计点数
+#     voxel_grid = {}
+#     for point in projected_coords:
+#         voxel_idx = tuple(((point - min_bounds) // voxel_size).astype(int))
+#         if voxel_idx not in voxel_grid:
+#             voxel_grid[voxel_idx] = []
+#         voxel_grid[voxel_idx].append(point)
+#
+#     # 生成体素中心坐标（PCA坐标系）
+#     voxel_centers_pca = []
+#     voxel_counts = []
+#     for idx in voxel_grid:
+#         center_pca = min_bounds + (np.array(idx) + 0.5) * voxel_size
+#         voxel_centers_pca.append(center_pca)
+#         voxel_counts.append(len(voxel_grid[idx]))
+#
+#     # 转换回原始坐标系
+#     voxel_centers = np.dot(np.array(voxel_centers_pca), pca_axes) + pca_mean
+#     return voxel_centers, np.array(voxel_counts)
+#
+#
+# def find_low_density_position(coords: np.ndarray, voxel_size: float = 1.0,
+#                               density_percentile: float = 10.0) -> np.ndarray:
+#     """寻找低密度体素区域的中心位置"""
+#     pca_mean, pca_axes, filtered_coords = compute_cloud_center(coords)
+#     voxel_centers, voxel_counts = voxelize_along_pca(filtered_coords, pca_mean, pca_axes, voxel_size)
+#
+#     # 筛选密度最低的体素（排除空体素）
+#     valid_indices = np.where(voxel_counts > 0)[0]
+#     if len(valid_indices) == 0:
+#         return pca_mean  # 无有效体素时回退到中心
+#
+#     valid_counts = voxel_counts[valid_indices]
+#     threshold = np.percentile(valid_counts, density_percentile)
+#     low_density_indices = valid_indices[valid_counts <= threshold]
+#
+#     # 选择距离场景中心最近的候选位置
+#     low_density_centers = voxel_centers[low_density_indices]
+#     distances_to_center = np.linalg.norm(low_density_centers - pca_mean, axis=1)
+#     best_candidate = low_density_centers[np.argmax(distances_to_center)]  # 选择最远的低密度点（通常在外部）
+#
+#     return best_candidate
+#
+#
+# def compute_camera_position(coords: np.ndarray, fov_deg: float = 60.0,
+#                             padding_scale: float = 1.5, voxel_size: float = 1.0) -> tuple:
+#     """计算摄像头的位置和朝向"""
+#     # 确定低密度候选位置
+#     candidate_pos = find_low_density_position(coords, voxel_size)
+#     pca_mean, pca_axes, _ = compute_cloud_center(coords)
+#
+#     # 计算包围盒尺寸
+#     centered_coords = coords - pca_mean
+#     projected_coords = np.dot(centered_coords, pca_axes.T)
+#     obb_size = np.max(projected_coords, axis=0) - np.min(projected_coords, axis=0)
+#
+#     # 计算安全距离（沿主方向反向）
+#     main_axis = pca_axes[0]
+#     fov_rad = np.radians(fov_deg)
+#     max_half_size = np.max(obb_size) / 2.0
+#     base_distance = (max_half_size / np.tan(fov_rad / 2)) * padding_scale
+#
+#     # 调整摄像头位置到安全距离
+#     camera_dir = -main_axis  # 沿主方向反向
+#     camera_pos = candidate_pos + camera_dir * base_distance
+#
+#     # 确保摄像头在点云外部：检查到最近点的距离
+#     tree = KDTree(coords)
+#     min_dist, _ = tree.query(camera_pos.reshape(1, -1), k=1)
+#     safe_distance = np.linalg.norm(obb_size) * 0.1  # 最小安全距离为包围盒尺寸的10%
+#     if min_dist < safe_distance:
+#         camera_pos += camera_dir * (safe_distance - min_dist)
+#
+#     # 摄像头朝向场景中心
+#     return camera_pos, pca_mean
+
+# *********************************************************************
+
+def compute_cloud_center(coords: np.ndarray) -> np.ndarray:
+    """计算点云的几何中心（质心）"""
+    return np.mean(coords, axis=0)
 
 
 if __name__ == "__main__":
     from inference import infer
 
     # Define the path to the point cloud or mesh file.
-    point_cloud_path = "agile3d/data/interactive_dataset/scene_00_reconstructed_01_transformed_mesh/scan.ply"
+    point_cloud_path = "agile3d/data/interactive_dataset/scan.ply"
 
     # Option 1: Generate a mask via inference.
     result_path, mask = infer(
@@ -463,6 +627,12 @@ if __name__ == "__main__":
         distance_factor=1,
         num_positions=8,
         camera_height=1.5,
-        mask_mode="outline"  # or "full" based on your desired visualization
+        mask_mode="outline",  # or "full" based on your desired visualization
+
+        look_outward=True,
+        overlap_ratio=0
     )
+    # for outer view
+    # view_angle = 90.0,
+    # distance_factor = 0.01,
     print(f"Generated {len(view_paths)} views at: {view_paths}")

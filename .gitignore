@@ -12,3 +12,5 @@ yarn-error.log*
 .pnp.js
 
 .vscode/*
+
+__pycache__/
