@@ -6,7 +6,9 @@ from typing import Dict, List, Any
 import numpy as np
 import open3d as o3d
 import torch
-from fastapi import FastAPI, File, UploadFile
+import subprocess
+import uuid
+from fastapi import FastAPI, File, UploadFile, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -314,6 +316,31 @@ async def download_results():
             status_code=500,
             content={"message": f"Error downloading results: {str(e)}"}
         )
+
+
+@app.post("/api/render_and_segment")
+def render(prompt: str = Body(...)):
+    # TODO: 这里你可以用 LLM 或规则解析 prompt
+    camera_pos = "2,3,1"
+    look_at = "0,0,0"
+    output_file = f"/tmp/render_{uuid.uuid4()}.png"
+
+    # 启动 Blender 渲染
+    subprocess.run([
+        "/path/to/blender", "--background", "--python", "control_blender.py", "--",
+        "--pos", camera_pos, "--look", look_at, "--output", output_file
+    ])
+
+    # TODO: 分割逻辑，这里可以调用 SAM、OpenCV、mask2former等
+    segmentation_result = fake_segment(output_file)
+
+    return {
+        "image": output_file,
+        "segmentation": segmentation_result
+    }
+
+def fake_segment(image_path):
+    return {"bbox": [100, 100, 300, 300], "label": "object"}
 
 
 # Run with uvicorn

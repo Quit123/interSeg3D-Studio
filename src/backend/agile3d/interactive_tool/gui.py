@@ -4,7 +4,7 @@ import open3d.visualization.rendering as rendering
 import os
 import numpy as np
 import time
-from interactive_tool.utils import get_obj_color, OBJECT_CLICK_COLOR, BACKGROUND_CLICK_COLOR, UNSELECTED_OBJECTS_COLOR, SELECTED_OBJECT_COLOR, find_nearest
+from utils import get_obj_color, OBJECT_CLICK_COLOR, BACKGROUND_CLICK_COLOR, UNSELECTED_OBJECTS_COLOR, SELECTED_OBJECT_COLOR, find_nearest
 import torch
 
 
@@ -572,6 +572,19 @@ class InteractiveSegmentationGUI:
         self.widget3d.setup_camera(35, bounds, center)
         self.widget3d.look_at(center, [0, -15, 0], [0, 0, 1]) # current dataset has its data at [0, 0, 0]
         self.widget3d.set_on_mouse(self.__mouse_event)
+
+    def __set_up_camera_b(self, camera_pos=None, target_pos=None, up_dir=None):
+        bounds = self.widget3d.scene.bounding_box
+        center = bounds.get_center()
+        if camera_pos is None:
+            camera_pos = [0, -15, 0]
+        if target_pos is None:
+            target_pos = center
+        if up_dir is None:
+            up_dir = [0, 0, 1]
+        self.widget3d.setup_camera(35, bounds, center)
+        self.widget3d.look_at(target_pos, camera_pos, up_dir)
+
     def __get_info_lable_text(self):
         text = f"Scene Name: {self.curr_scene_name}"
         if len(self.info_coordinate_text) > 0:

@@ -1,9 +1,10 @@
 import MinkowskiEngine.MinkowskiOps as me
-from MinkowskiEngine import MinkowskiReLU
+from MinkowskiEngine.MinkowskiNonlinearity import MinkowskiReLU
+# from MinkowskiEngine.MinkowskiNonlinearity import MinkowskiReLU
 
-from models.resnet import ResNetBase, get_norm
-from models.modules.common import ConvType, NormType, conv, conv_tr
-from models.modules.resnet_block import BasicBlock, Bottleneck
+from .resnet import ResNetBase, get_norm
+from .modules.common import ConvType, NormType, conv, conv_tr
+from .modules.resnet_block import BasicBlock, Bottleneck
 
 
 class Res16UNetBase(ResNetBase):
