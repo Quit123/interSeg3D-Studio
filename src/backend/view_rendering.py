@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 from scipy.stats import multivariate_normal
 
 def load_geometry_from_file(
-        file_path: str | Path,
+        file_path: Union[str, Path],
         background_color: List[float],
         debug: bool = False
 ) -> Tuple[str, np.ndarray, np.ndarray, Union[o3d.geometry.TriangleMesh, o3d.geometry.PointCloud]]:
@@ -332,7 +332,7 @@ def sample_line_points(line_set, num_samples=20):
 
 
 def test_camera_positions(
-        point_cloud_path: str | Path,
+        point_cloud_path: Union[str, Path],
         mask: Union[np.ndarray, str],
         output_dir: str = "./camera_test",
         view_angle: float = 60.0,

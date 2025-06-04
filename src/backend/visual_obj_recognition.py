@@ -7,9 +7,10 @@ from typing import List, Tuple
 import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 from pydantic import BaseModel
+from typing import Union
 
 from inference import infer
 # Import the test_camera_positions function from view_rendering.py
@@ -44,7 +45,7 @@ def get_cost(response):
     return cost
 
 
-def mask_obj_recognition(point_cloud_path: str | Path, mask: np.ndarray | str, obj_id: int) -> Tuple[str, float]:
+def mask_obj_recognition(point_cloud_path: Union[str, Path], mask: Union[np.ndarray, str], obj_id: int) -> Tuple[str, float]:
     """
     Performs mask-based object recognition on a given point cloud using the provided mask.
 
