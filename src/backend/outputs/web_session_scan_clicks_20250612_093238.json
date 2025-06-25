@@ -1,0 +1,93 @@
+[
+  {
+    "position": [
+      -0.3435267210006714,
+      -0.3454816937446594,
+      0.8563352823257446
+    ],
+    "obj_idx": 0,
+    "obj_name": "background",
+    "time_idx": 5,
+    "is_positive": true,
+    "id": 41111,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      0.049225933849811554,
+      -0.023977136239409447,
+      0.8422468900680542
+    ],
+    "obj_idx": 0,
+    "obj_name": "background",
+    "time_idx": 6,
+    "is_positive": true,
+    "id": 36836,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      0.07357314229011536,
+      1.9698883295059204,
+      0.7231317162513733
+    ],
+    "obj_idx": 1,
+    "obj_name": "object_1",
+    "time_idx": 0,
+    "is_positive": true,
+    "id": 32381,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      -0.29530441761016846,
+      1.5717324018478394,
+      0.7300704121589661
+    ],
+    "obj_idx": 1,
+    "obj_name": "object_1",
+    "time_idx": 1,
+    "is_positive": true,
+    "id": 42688,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      0.9578934907913208,
+      1.8632245063781738,
+      0.471082866191864
+    ],
+    "obj_idx": 2,
+    "obj_name": "object_2",
+    "time_idx": 2,
+    "is_positive": true,
+    "id": 29895,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      1.4423216581344604,
+      1.3193811178207397,
+      0.48102080821990967
+    ],
+    "obj_idx": 2,
+    "obj_name": "object_2",
+    "time_idx": 3,
+    "is_positive": true,
+    "id": 21690,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      -0.31915953755378723,
+      0.19092905521392822,
+      0.8347609639167786
+    ],
+    "obj_idx": 3,
+    "obj_name": "object_3",
+    "time_idx": 4,
+    "is_positive": true,
+    "id": 52769,
+    "cube_size": 0.02
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "position": [
+      4.574889183044434,
+      1.6464509963989258,
+      0.7762205004692078
+    ],
+    "obj_idx": 1,
+    "obj_name": "object_1",
+    "time_idx": 0,
+    "is_positive": true,
+    "id": 30020,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      3.8799490928649902,
+      2.203125,
+      0.7028124332427979
+    ],
+    "obj_idx": 1,
+    "obj_name": "object_1",
+    "time_idx": 1,
+    "is_positive": true,
+    "id": 23342,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      3.508124828338623,
+      5.408749580383301,
+      0.4676545262336731
+    ],
+    "obj_idx": 2,
+    "obj_name": "object_2",
+    "time_idx": 2,
+    "is_positive": true,
+    "id": 17445,
+    "cube_size": 0.02
+  },
+  {
+    "position": [
+      2.6391968727111816,
+      5.149856090545654,
+      0.5092868804931641
+    ],
+    "obj_idx": 2,
+    "obj_name": "object_2",
+    "time_idx": 3,
+    "is_positive": true,
+    "id": 17509,
+    "cube_size": 0.02
+  }
+]

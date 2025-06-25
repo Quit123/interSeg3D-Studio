@@ -7,8 +7,8 @@ from typing import List, Tuple
 import numpy as np
 from PIL import Image
 from dotenv import load_dotenv
-import google.generativeai as genai
-from google.generativeai import types
+from google import genai
+from google.genai import types
 from pydantic import BaseModel
 from typing import Union
 

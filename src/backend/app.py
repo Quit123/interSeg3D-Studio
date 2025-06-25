@@ -275,10 +275,7 @@ async def run_mask_obj_recognition(request: MaskObjDetectionRequest):
             for obj_id in unique_obj_ids
         ]
 
-        # Process each object in parallel.
-        import multiprocessing
-        with multiprocessing.Pool() as pool:
-            result = pool.map(mask_obj_recognition_worker, work_args)
+        result = [mask_obj_recognition_worker(args) for args in work_args]
 
         return JSONResponse(content={
             "message": "Mask object recognition completed successfully",
