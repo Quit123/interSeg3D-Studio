@@ -207,6 +207,25 @@ class ApiService {
     }
 
     /**
+     * Initialize segmentation and annotation
+     * @returns Promise with segmentation results
+     */
+    async runInitialize(): Promise<AxiosResponse<InferenceResponse>> {
+        console.log('Running initialization...');
+
+        try {
+            return await api.post('/initialize');
+        } catch (error) {
+            console.error('Initialization failed:', error);
+            if (axios.isAxiosError(error) && error.response) {
+                console.error('Response status:', error.response.status);
+                console.error('Response data:', error.response.data);
+            }
+            return Promise.reject(error);
+        }
+    }
+
+    /**
      * Run inference on the current point cloud with the provided click data
      * @param request Inference request data
      * @returns Promise with segmentation results

@@ -172,6 +172,18 @@
             </v-card>
 
             <v-btn
+                :disabled="!pointCloudStore.pointCloudData.file || apiStore.isProcessing || apiStore.operationLock"
+                :loading="apiStore.isProcessing && !apiStore.isAnalyzing"
+                block
+                class="mt-4"
+                color="teal"
+                x-large
+                @click="initializeSegmentation"
+            >
+              INITIALIZE SEGMENTATION
+            </v-btn>
+
+            <v-btn
                 :disabled="!pointCloudStore.pointCloudData.file || !apiStore.hasClickData || apiStore.isProcessing || apiStore.operationLock"
                 :loading="apiStore.isProcessing && !apiStore.isAnalyzing"
                 block
@@ -472,6 +484,17 @@ function createNewObject() {
  */
 function selectObject(index: number) {
   uiStore.selectObject(index);
+}
+
+/**
+ * Start auto-segmentation timer
+ */
+async function initializeSegmentation() {
+  try {
+    await apiStore.initializeSegmentation();
+  } catch (error: any) {
+    alert(error.message);
+  }
 }
 
 /**

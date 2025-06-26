@@ -86,6 +86,42 @@ export const useApiStore = defineStore('api', () => {
     }
   };
 
+  const initializeSegmentation = async (): Promise<boolean> => {
+    if (operationLock.value || isProcessing.value) {
+      console.warn('Operation in progress. Please wait.');
+      return false;
+    }
+
+    operationLock.value = true;
+    isProcessing.value = true;
+    processingMessage.value = 'Initializing segmentation';
+
+    try {
+      // Call API
+      const response = await apiService.runInitialize();
+
+      if (!response.data || !response.data.segmentedPointCloud) {
+        console.error('Invalid response format:', response.data);
+        throw new Error('Invalid response from server');
+      }
+
+      // Apply segmentation
+      pointCloudStore.applySegmentation(response.data.segmentedPointCloud);
+
+      // Recreate markers to keep them visible
+      annotationStore.recreateMarkers();
+
+      return true;
+    } catch (error: any) {
+      const errorMessage = handleApiError(error, 'Error running initialization');
+      throw new Error(errorMessage);
+    } finally {
+      isProcessing.value = false;
+      processingMessage.value = '';
+      operationLock.value = false;
+    }
+  }
+
   const runSegmentation = async (): Promise<boolean> => {
     if (!hasClickData.value) return false;
 
@@ -302,6 +338,7 @@ export const useApiStore = defineStore('api', () => {
 
     // Actions
     uploadPointCloud,
+    initializeSegmentation,
     runSegmentation,
     analyzeObjects,
     applyAnalysisLabel,
