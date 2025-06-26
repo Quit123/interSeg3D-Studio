@@ -207,16 +207,16 @@ class ApiService {
     }
 
     /**
-     * Initialize segmentation and annotation
+     * Pre segmentation and annotation
      * @returns Promise with segmentation results
      */
-    async runInitialize(): Promise<AxiosResponse<InferenceResponse>> {
-        console.log('Running initialization...');
+    async preSegmentation(): Promise<AxiosResponse<InferenceResponse>> {
+        console.log('Running pre segmentation...');
 
         try {
-            return await api.post('/initialize');
+            return await api.post('/pre-segmentation');
         } catch (error) {
-            console.error('Initialization failed:', error);
+            console.error('Pre segmentation failed:', error);
             if (axios.isAxiosError(error) && error.response) {
                 console.error('Response status:', error.response.status);
                 console.error('Response data:', error.response.data);

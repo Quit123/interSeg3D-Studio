@@ -86,7 +86,7 @@ export const useApiStore = defineStore('api', () => {
     }
   };
 
-  const initializeSegmentation = async (): Promise<boolean> => {
+  const preSegmentation = async (): Promise<boolean> => {
     if (operationLock.value || isProcessing.value) {
       console.warn('Operation in progress. Please wait.');
       return false;
@@ -94,11 +94,11 @@ export const useApiStore = defineStore('api', () => {
 
     operationLock.value = true;
     isProcessing.value = true;
-    processingMessage.value = 'Initializing segmentation';
+    processingMessage.value = 'Pre segmentation ...';
 
     try {
       // Call API
-      const response = await apiService.runInitialize();
+      const response = await apiService.preSegmentation();
 
       if (!response.data || !response.data.segmentedPointCloud) {
         console.error('Invalid response format:', response.data);
@@ -338,7 +338,7 @@ export const useApiStore = defineStore('api', () => {
 
     // Actions
     uploadPointCloud,
-    initializeSegmentation,
+    preSegmentation,
     runSegmentation,
     analyzeObjects,
     applyAnalysisLabel,

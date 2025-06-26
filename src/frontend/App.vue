@@ -178,9 +178,9 @@
                 class="mt-4"
                 color="teal"
                 x-large
-                @click="initializeSegmentation"
+                @click="preSegmentation"
             >
-              INITIALIZE SEGMENTATION
+              PRE SEGMENTATION
             </v-btn>
 
             <v-btn
@@ -489,9 +489,9 @@ function selectObject(index: number) {
 /**
  * Start auto-segmentation timer
  */
-async function initializeSegmentation() {
+async function preSegmentation() {
   try {
-    await apiStore.initializeSegmentation();
+    await apiStore.preSegmentation();
   } catch (error: any) {
     alert(error.message);
   }

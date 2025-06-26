@@ -138,8 +138,8 @@ async def upload_point_cloud(file: UploadFile = File(...)):
             content={"message": f"Error processing file: {str(e)}"}
         )
 
-@app.post("api/initialize")
-async def initialize_segmentation():
+@app.post("api/pre_segmentation")
+async def pre_segmentation():
     pass
 
 @app.post("/api/infer")
