@@ -8,17 +8,17 @@ camera positions, save a combined scene (with camera markers), and render images
 import os
 from pathlib import Path
 from typing import List, Tuple, Union, Optional
-
+import subprocess
 import numpy as np
 import open3d as o3d
 from open3d.visualization import rendering
-
+from scipy.spatial import cKDTree
 from scipy.spatial import KDTree
 from sklearn.decomposition import PCA
 from scipy.stats import multivariate_normal
 
 def load_geometry_from_file(
-        file_path: Union[str, Path],
+        file_path: str | Path,
         background_color: List[float],
         debug: bool = False
 ) -> Tuple[str, np.ndarray, np.ndarray, Union[o3d.geometry.TriangleMesh, o3d.geometry.PointCloud]]:
@@ -332,7 +332,7 @@ def sample_line_points(line_set, num_samples=20):
 
 
 def test_camera_positions(
-        point_cloud_path: Union[str, Path],
+        point_cloud_path: str | Path,
         mask: Union[np.ndarray, str],
         output_dir: str = "./camera_test",
         view_angle: float = 60.0,
@@ -393,10 +393,14 @@ def test_camera_positions(
 
     # center, bounding_radius = compute_object_center_and_radius(obj_mask, coords)
     # ******************************************************************************
+
+    if camera_height is None and not look_outward:
+        camera_height = np.min(coords[:, 2]) + 1.5
+
     if look_outward:
         # The central of whole point cloud and surrounding radius
-        center = compute_cloud_center(coords)
-        # center, target = compute_camera_position(coords)
+        # center = compute_cloud_center(coords)
+        center = compute_camera_position(coords, camera_height=camera_height)
         bounding_radius = 0.5
 
         view_angle = 90.0
@@ -417,8 +421,10 @@ def test_camera_positions(
     # ******************************************************************************
 
     # Compute camera height if not provided.
-    if camera_height is None:
-        camera_height = np.min(coords[:, 2]) + 1.5
+    # if camera_height is None and not look_outward:
+    #     camera_height = np.min(coords[:, 2]) + 1.5
+    # else:
+    #     camera_height = center[2]
 
     # Generate camera positions evenly around the object.
     camera_positions = []
@@ -483,6 +489,159 @@ def test_camera_positions(
     )
 
 # *********************************************************************
+
+def calculate_adaptive_voxel_size(
+        coords: np.ndarray,
+        target_num_voxels: int = 10 * 10 * 10
+) -> Tuple[float, np.ndarray, np.ndarray]:
+    """
+    根据目标体素数量动态计算 voxel_size 和体素网格范围。
+
+    参数:
+        coords: 点云坐标数组，形状为 (N, 3)
+        target_num_voxels: 目标体素数量（总体素数接近该值）
+
+    返回:
+        voxel_size: 自动计算的体素大小
+        min_bounds: 包围盒最小值，形状 (3,)
+        max_bounds: 包围盒最大值，形状 (3,)
+    """
+    if len(coords) == 0:
+        return 1.0, np.array([0.0, 0.0, 0.0]), np.array([1.0, 1.0, 1.0])
+
+    # 计算点云的包围盒
+    min_bounds = np.min(coords, axis=0)
+    max_bounds = np.max(coords, axis=0)
+    scene_size = max_bounds - min_bounds
+
+    # 避免尺寸为0的情况（例如所有点在同一平面上）
+    scene_size[scene_size == 0] = 1e-6
+
+    # 计算每个轴的体素数量比例（基于场景尺寸）
+    axis_ratios = scene_size / np.sum(scene_size)
+
+    # 根据目标总数量分配各轴体素数（三次根分配，保持各轴体素数比例）
+    num_voxels_per_axis = (target_num_voxels * axis_ratios) ** (1 / 3)
+    num_voxels_per_axis = np.ceil(num_voxels_per_axis).astype(int)
+
+    # 计算 voxel_size（确保各轴体素数至少为1）
+    voxel_size = scene_size / np.maximum(num_voxels_per_axis, 1)
+
+    return voxel_size.mean(), min_bounds, max_bounds
+
+def compute_camera_position(coords: np.ndarray,
+                            camera_height: float,
+                            density_percentile: float = 20.0,
+                            ) -> np.ndarray:
+    """
+    在点云场景中找到适合平视的摄像头位置：
+    1. 体素化点云，筛选低密度区域
+    2. 选择靠近场景中心且密度最低的体素中心作为位置
+    """
+    if len(coords) == 0:
+        return np.array([0.0, 0.0, 0.0])
+
+    # 计算场景中心（直接均值，无需PCA）
+    scene_center = np.mean(coords, axis=0)
+    scene_center = [scene_center[0], scene_center[1], camera_height]
+
+    # 体素化（在原始坐标系下，无需PCA对齐）
+    # min_bounds = np.min(coords, axis=0)
+    # max_bounds = np.max(coords, axis=0)
+    voxel_size, min_bounds, max_bounds = calculate_adaptive_voxel_size(coords)
+    num_voxels = np.ceil((max_bounds - min_bounds) / voxel_size).astype(int)
+    radius = voxel_size * 0.8
+    print("min_bounds:", min_bounds)
+    print("max_bounds:", max_bounds)
+    print("num_voxels:", num_voxels)
+    print("num_voxels: ", num_voxels[0] * num_voxels[1] * num_voxels[2])
+    # 统计每个体素的点云数量
+    voxel_grid = {}
+    for x_id in range(num_voxels[0]):
+        for y_id in range(num_voxels[1]):
+            for z_id in range(num_voxels[2]):
+                voxel_grid[(x_id, y_id, z_id)] = []
+    for point in coords:
+        voxel_idx = tuple(((point - min_bounds) // voxel_size).astype(int))
+        # voxel_idx = np.clip(voxel_idx, 0 , num_voxels - 1)
+        voxel_grid[voxel_idx].append(point)
+
+    num_voxels_x, num_voxels_y, num_voxels_z = num_voxels
+    # 提取体素中心坐标和点数
+    voxel_centers_3d = np.full((num_voxels_x, num_voxels_y, num_voxels_z, 3), None)  # 存储体素中心
+    voxel_counts_3d = np.zeros((num_voxels_x, num_voxels_y, num_voxels_z), dtype=int)  # 存储体素点数
+    for idx in voxel_grid:
+        x_id, y_id, z_id = idx
+        # 计算体素中心
+        center = min_bounds + (np.array(idx) + 0.5) * voxel_size
+        # 填充到三维数组中
+        voxel_centers_3d[x_id, y_id, z_id] = center
+        voxel_counts_3d[x_id, y_id, z_id] = len(voxel_grid[idx])
+
+    voxel_centers_3d = np.array(voxel_centers_3d)
+    voxel_counts_3d = np.array(voxel_counts_3d)
+
+    threshold = np.percentile(voxel_counts_3d, density_percentile)
+    low_density_indices = np.array(np.where(voxel_counts_3d <= threshold)).T
+
+    distances_to_center = []
+    for idx in low_density_indices:
+        x_id, y_id, z_id = idx
+        # print(x_id, y_id, z_id)
+        center = voxel_centers_3d[x_id, y_id, z_id, :]
+        # print(center)
+        if None in center:
+            #print(f"Skipping voxel at index {idx} because center is None")
+            continue  # 如果是None，跳过这个点
+        else:
+            #print(f"Processing voxel at index {idx}, center: {center}")
+            distance = np.linalg.norm(center - scene_center)
+            distances_to_center.append((distance, idx, center))  # 记录距离和索引
+
+    distances_to_center.sort(key=lambda x: x[0])
+
+    good_position = None
+
+    while True:
+        for i in range(len(distances_to_center)):
+            distance, idx, center = distances_to_center[i]
+            if is_position_valid(center, coords, radius):
+                good_position = center
+                break
+        print("good_position:", good_position)
+        print("radius:", radius)
+        if good_position is not None:
+            break
+        else:
+            print("radius: ", radius)
+            radius = radius * 0.9
+
+    # middle_idx = len(distances_to_center) // 2
+    # while(True):
+    #     for i in range(middle_idx, len(distances_to_center)):
+    #         distance_r, idx_r, center_r = distances_to_center[i]
+    #         distance_l, idx_l, center_l = distances_to_center[len(distances_to_center) - i - 1]
+    #         if is_position_valid(center_r, coords, radius):
+    #             good_position = center_r
+    #             break
+    #         elif is_position_valid(center_l, coords, radius):
+    #             good_position = center_l
+    #             break
+    #     print("good_position:", good_position)
+    #     print("radius:", radius)
+    #     if good_position is not None:
+    #         break
+    #     else:
+    #         radius = radius * 0.8
+
+    return good_position
+
+def is_position_valid(camera_pos: np.ndarray, coords: np.ndarray, radius: float) -> bool:
+    """检查摄像头位置周围是否空旷"""
+    tree = cKDTree(coords)
+    distances, _ = tree.query(camera_pos.reshape(1, -1), k=1, distance_upper_bound=radius)
+    # print(f"Checking position: {camera_pos}, distance: {distances}, radius: {radius}")
+    return distances > radius  # 最近点距离大于阈值则认为安全
 
 # def compute_cloud_center(coords: np.ndarray, k_neighbors: int = 50, std_ratio: float = 2.0) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
 #     """预处理点云并计算PCA主方向"""
@@ -596,9 +755,9 @@ def test_camera_positions(
 
 # *********************************************************************
 
-def compute_cloud_center(coords: np.ndarray) -> np.ndarray:
-    """计算点云的几何中心（质心）"""
-    return np.mean(coords, axis=0)
+# def compute_cloud_center(coords: np.ndarray) -> np.ndarray:
+#     """计算点云的几何中心（质心）"""
+#     return np.mean(coords, axis=0)
 
 
 if __name__ == "__main__":
@@ -606,6 +765,10 @@ if __name__ == "__main__":
 
     # Define the path to the point cloud or mesh file.
     point_cloud_path = "agile3d/data/interactive_dataset/scan.ply"
+
+    # geometry_type, coords, colors, geometry = load_geometry_from_file(point_cloud_path, [0.5, 0.5, 0.5])
+    #
+    # print(compute_camera_position(coords))
 
     # Option 1: Generate a mask via inference.
     result_path, mask = infer(
@@ -636,3 +799,5 @@ if __name__ == "__main__":
     # view_angle = 90.0,
     # distance_factor = 0.01,
     print(f"Generated {len(view_paths)} views at: {view_paths}")
+
+    subprocess.run(["python", "grounded_sam2_gd1.5_demo.py"], cwd="./Grounded-SAM-2")
