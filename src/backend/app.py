@@ -18,6 +18,9 @@ from pydantic import BaseModel
 from inference import Click, ClickHandler, PointCloudInference
 from visual_obj_recognition import mask_obj_recognition
 
+# Import the pre segmentation module
+from pointcloud_filter import filt_pointcloud
+from voxelizer import find_position
 
 # Create static directory if it doesn't exist
 static_dir = os.path.join(os.getcwd(), "static")
@@ -140,7 +143,21 @@ async def upload_point_cloud(file: UploadFile = File(...)):
 
 @app.post("api/pre_segmentation")
 async def pre_segmentation():
-    pass
+    """
+    Decide camera position and do pre segmentation
+    """
+    global current_point_cloud
+
+    # Filt center point cloud
+    center_coords = filt_pointcloud(current_point_cloud["coords"])
+
+    # Determine the height based on the center coordinates
+    max_height = center_coords.max(axis=0)[2]
+    min_height = center_coords.min(axis=0)[2]
+    height = (max_height * 2 + min_height) / 3
+
+    # Find the camera position based on the center coordinates and height
+    position = find_position(center_coords, height)
 
 @app.post("/api/infer")
 async def run_inference(request: InferenceRequest):
