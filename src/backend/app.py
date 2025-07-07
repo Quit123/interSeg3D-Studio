@@ -14,13 +14,16 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+# Import the pre segmentation module
+from pointcloud_filter import filt_pointcloud
+from voxelizer import find_position
+from view_rendering import test_camera_positions
+from segmentor import pre_segment
+
 # Import the inference module
 from inference import Click, ClickHandler, PointCloudInference
 from visual_obj_recognition import mask_obj_recognition
 
-# Import the pre segmentation module
-from pointcloud_filter import filt_pointcloud
-from voxelizer import find_position
 
 # Create static directory if it doesn't exist
 static_dir = os.path.join(os.getcwd(), "static")
@@ -157,7 +160,32 @@ async def pre_segmentation():
     height = (max_height * 2 + min_height) / 3
 
     # Find the camera position based on the center coordinates and height
-    position = find_position(center_coords, height)
+    # position = find_position(center_coords, height)
+
+    # Render images(cover all directions)
+    in_paths = test_camera_positions (
+        point_cloud_path = current_point_cloud_path,
+        mask = None,
+        output_dir = "./camera_test",
+        view_angle = 120.0,
+        distance_factor = 2.0,
+        num_positions = 3,
+        camera_height = height,
+        mask_mode = "outline",
+        highlight_color = [1.0, 0.0, 0.0],
+        obj_id = 1,
+
+        look_outward = True,
+        overlap_ratio = 0.2
+    )
+
+    # Pre-segment the rendered images
+    out_paths = pre_segment(in_paths)
+
+    return JSONResponse(content={
+        "message": "Pre-segment completed successfully",
+        "out_paths": out_paths,
+    })
 
 @app.post("/api/infer")
 async def run_inference(request: InferenceRequest):
