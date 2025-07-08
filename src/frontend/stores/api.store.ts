@@ -325,12 +325,14 @@ export const useApiStore = defineStore('api', () => {
   return {
     // State
     isLoading,
+    isPreSegmenting,
     isProcessing,
     isAnalyzing,
     isDownloading,
     processingMessage,
     operationLock,
     analysisResults,
+    preSegmentResults,
 
     // Computed
     hasResults,

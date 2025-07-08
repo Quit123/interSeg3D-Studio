@@ -219,7 +219,7 @@ class ApiService {
         console.log('Running pre segmentation...');
 
         try {
-            return await api.post('/pre-segmentation');
+            return await api.post<PreSegmentationResponse>('/pre_segmentation');
         } catch (error) {
             console.error('Pre segmentation failed:', error);
             if (axios.isAxiosError(error) && error.response) {
