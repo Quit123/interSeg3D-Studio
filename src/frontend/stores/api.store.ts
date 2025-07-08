@@ -103,6 +103,7 @@ export const useApiStore = defineStore('api', () => {
     try {
       // Call API
       const response = await apiService.preSegmentation();
+      console.log(response.data); // Debugging: log the response data
 
       if (!response.data || !response.data.outPaths) {
         console.error('Invalid response format:', response.data);

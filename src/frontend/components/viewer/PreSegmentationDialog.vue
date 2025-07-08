@@ -42,7 +42,7 @@
             style="max-width: 320px;"
           >
             <v-img
-              :src="imgPath"
+              :src="`/${imgPath}`"
               aspect-ratio="1.5"
               contain
               class="rounded"

@@ -144,19 +144,20 @@ async def upload_point_cloud(file: UploadFile = File(...)):
             content={"message": f"Error processing file: {str(e)}"}
         )
 
-@app.post("api/pre_segmentation")
+@app.post("/api/pre_segmentation")
 async def pre_segmentation():
     """
     Decide camera position and do pre segmentation
     """
     global current_point_cloud
+    coords = current_point_cloud["coords"]
 
     # Filt center point cloud
-    center_coords = filt_pointcloud(current_point_cloud["coords"])
+    # center_coords = filt_pointcloud(current_point_cloud["coords"])
 
     # Determine the height based on the center coordinates
-    max_height = center_coords.max(axis=0)[2]
-    min_height = center_coords.min(axis=0)[2]
+    max_height = coords.max(axis=0)[2]
+    min_height = coords.min(axis=0)[2]
     height = (max_height * 2 + min_height) / 3
 
     # Find the camera position based on the center coordinates and height
@@ -165,13 +166,12 @@ async def pre_segmentation():
     # Render images(cover all directions)
     in_paths = test_camera_positions (
         point_cloud_path = current_point_cloud_path,
-        mask = None,
+        mask = np.zeros(len(coords), dtype=int),  # Dummy mask, will be pre-segmented
         output_dir = "./camera_test",
-        view_angle = 120.0,
+        view_angle = 60.0,
         distance_factor = 2.0,
-        num_positions = 3,
         camera_height = height,
-        mask_mode = "outline",
+        mask_mode = "full",
         highlight_color = [1.0, 0.0, 0.0],
         obj_id = 1,
 

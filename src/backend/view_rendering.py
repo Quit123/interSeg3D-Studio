@@ -212,10 +212,12 @@ def render_object_views(
     near_plane = 0.1
     far_plane = 1000.0
 
-    if not mask_bool.any():
-        raise ValueError("The mask did not select any points.")
-    # Compute the center of the masked object.
-    object_center = np.mean(coords[mask_bool], axis=0)
+    object_center = None
+    if not look_outward:
+        if not mask_bool.any():
+            raise ValueError("The mask did not select any points.")
+        # Compute the center of the masked object.
+        object_center = np.mean(coords[mask_bool], axis=0)
 
     image_paths = []
     # Iterate over each camera position, render the scene, and save the output image.
@@ -330,6 +332,13 @@ def sample_line_points(line_set, num_samples=20):
             sampled_points.append(sample)
     return np.array(sampled_points)
 
+def center_render(
+        
+) -> List[str]:
+    """
+    Render the whole scene with the given center position and bounding radius.
+    """
+    pass
 
 def test_camera_positions(
         point_cloud_path: str | Path,
