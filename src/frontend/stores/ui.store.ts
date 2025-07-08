@@ -22,6 +22,7 @@ export const useUiStore = defineStore('ui', () => {
   const cursorStyle = ref<string>('auto'); // Add cursor style state
 
   // Analysis dialog state
+  const showPreSegmentationDialog = ref(false);
   const showAnalysisDialog = ref(false);
   const showDescriptionDialog = ref(false);
   const selectedObjectForDescription = ref<ObjectData | null>(null);
@@ -133,6 +134,7 @@ export const useUiStore = defineStore('ui', () => {
     objects.value = [];
     selectedObjectIndex.value = null;
     newObjectName.value = '';
+    showPreSegmentationDialog.value = false;
     showAnalysisDialog.value = false;
     showDescriptionDialog.value = false;
     selectedObjectForDescription.value = null;
@@ -148,6 +150,7 @@ export const useUiStore = defineStore('ui', () => {
     showInstructions,
     newObjectName,
     objects,
+    showPreSegmentationDialog,
     showAnalysisDialog,
     showDescriptionDialog,
     selectedObjectForDescription,

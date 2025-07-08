@@ -184,7 +184,7 @@ async def pre_segmentation():
 
     return JSONResponse(content={
         "message": "Pre-segment completed successfully",
-        "out_paths": out_paths,
+        "outPaths": out_paths,
     })
 
 @app.post("/api/infer")

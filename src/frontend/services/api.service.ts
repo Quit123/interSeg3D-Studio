@@ -7,6 +7,11 @@ const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://172.18.35.200:9
 const USE_PROXY = import.meta.env.VITE_USE_PROXY !== 'false';
 
 // Interfaces for API requests and responses
+export interface PreSegmentationResponse {
+    message: string;
+    outPaths: string[];
+}
+
 export interface InferenceRequest {
     clickData: ApiClickData;
     cubeSize: number;
@@ -210,7 +215,7 @@ class ApiService {
      * Pre segmentation and annotation
      * @returns Promise with segmentation results
      */
-    async preSegmentation(): Promise<AxiosResponse<InferenceResponse>> {
+    async preSegmentation(): Promise<AxiosResponse<PreSegmentationResponse>> {
         console.log('Running pre segmentation...');
 
         try {

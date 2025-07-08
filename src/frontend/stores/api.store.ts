@@ -14,12 +14,14 @@ export const useApiStore = defineStore('api', () => {
 
   // State
   const isLoading = ref(false);
+  const isPreSegmenting = ref(false);
   const isProcessing = ref(false);
   const isAnalyzing = ref(false);
   const isDownloading = ref(false);
   const processingMessage = ref('');
   const operationLock = ref(false);
   const analysisResults = ref<MaskObjectRecognitionResult[]>([]);
+  const preSegmentResults = ref<string[]>([]);
 
   // Computed
   const hasResults = computed(() => analysisResults.value.length > 0);
@@ -92,31 +94,29 @@ export const useApiStore = defineStore('api', () => {
       return false;
     }
 
+    isPreSegmenting.value = true;
     operationLock.value = true;
-    isProcessing.value = true;
     processingMessage.value = 'Pre segmentation ...';
+    uiStore.showPreSegmentationDialog = true;
+    preSegmentResults.value = [];
 
     try {
       // Call API
       const response = await apiService.preSegmentation();
 
-      if (!response.data || !response.data.segmentedPointCloud) {
+      if (!response.data || !response.data.outPaths) {
         console.error('Invalid response format:', response.data);
         throw new Error('Invalid response from server');
       }
 
-      // Apply segmentation
-      pointCloudStore.applySegmentation(response.data.segmentedPointCloud);
-
-      // Recreate markers to keep them visible
-      annotationStore.recreateMarkers();
+      preSegmentResults.value = response.data.outPaths;
 
       return true;
     } catch (error: any) {
-      const errorMessage = handleApiError(error, 'Error running initialization');
+      const errorMessage = handleApiError(error, 'Error running pre segmentation');
       throw new Error(errorMessage);
     } finally {
-      isProcessing.value = false;
+      isPreSegmenting.value = false;
       processingMessage.value = '';
       operationLock.value = false;
     }

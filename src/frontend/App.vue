@@ -309,6 +309,13 @@
       </v-card>
     </v-dialog>
 
+    <!-- Pre Segmentation Dialog -->
+    <PreSegmentationDialog
+        v-model="uiStore.showPreSegmentationDialog"
+        :loading="apiStore.isPreSegmenting"
+        :results="apiStore.preSegmentResults"
+    />
+
     <!-- Object Description Dialog -->
     <v-dialog v-model="uiStore.showDescriptionDialog" max-width="600">
       <ObjectDescriptionCard
@@ -338,6 +345,7 @@
 import {computed, onBeforeUnmount, onMounted, ref} from 'vue';
 import PointCloudViewer from './components/viewer/PointCloudViewer.vue';
 import DebugPanel from './components/DebugPanel.vue';
+import PreSegmentationDialog from './components/viewer/PreSegmentationDialog.vue';
 import ObjectDescriptionCard from './components/viewer/ObjectDescriptionCard.vue';
 import ObjectAnalysisDialog from './components/viewer/ObjectAnalysisDialog.vue';
 import {getCssColorFromIndex} from './utils/color.util';
