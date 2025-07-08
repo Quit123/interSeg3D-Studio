@@ -3,6 +3,7 @@
 object_views
 agile3d/data
 agile3d/outputs
+outputs
 
 
 *.pth
